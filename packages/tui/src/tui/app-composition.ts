@@ -53,6 +53,7 @@ import {
 import { detectProcessTerminalCapabilities } from './platform/terminal-capabilities.js';
 import { createTuiTextClipboardWriter } from './platform/terminal-clipboard.js';
 import { TuiTerminalNotifications } from './platform/terminal-notifications.js';
+import { TuiTerminalProgramStatus } from './platform/terminal-program-status.js';
 import {
   ProcessTerminal,
   type Component,
@@ -170,6 +171,11 @@ export function createTuiApplicationRenderer(options: CreateTuiAppOptions) {
     },
     { settings: options.notifications },
   );
+  const programStatusCapabilities = options.terminalCapabilities ?? capabilities;
+  const terminalProgramStatus = new TuiTerminalProgramStatus(
+    terminal,
+    programStatusCapabilities.isTTY && options.programStatus !== false,
+  );
   themeController = new TuiThemeController({
     ui: tui,
     colorLevel: capabilities.colorLevel,
@@ -183,6 +189,7 @@ export function createTuiApplicationRenderer(options: CreateTuiAppOptions) {
     renderer,
     tui,
     terminalNotifications,
+    terminalProgramStatus,
     themeController,
     openExternalTarget,
     writeClipboardText,

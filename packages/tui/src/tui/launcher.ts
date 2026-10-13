@@ -343,6 +343,9 @@ export async function launchTui(
         ...(presentationConfig.notifications
           ? { notifications: presentationConfig.notifications }
           : {}),
+        ...(presentationConfig.programStatus === undefined
+          ? {}
+          : { programStatus: presentationConfig.programStatus }),
         ...(process.env[KCODE_TUI_RESULT_PATH_ENV]
           ? { automationResultPath: process.env[KCODE_TUI_RESULT_PATH_ENV] }
           : {}),

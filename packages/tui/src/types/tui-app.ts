@@ -69,6 +69,8 @@ export interface CreateTuiAppOptions extends TuiUpdateOptions {
    */
   terminalTitle?: readonly string[] | null;
   notifications?: TuiNotificationSettings;
+  /** OSC 7501 program status from tui.programStatus; false disables reports. Defaults to true. */
+  programStatus?: boolean;
   /** Internal result-channel path; ignored unless statusLineItems enables build-mode. */
   automationResultPath?: string;
   productFeatures?: Partial<TuiProductFeatures>;
