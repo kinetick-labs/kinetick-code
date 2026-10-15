@@ -38,6 +38,9 @@ describe('terminal title ownership', () => {
     expect(formatTuiTerminalTitle({ ...input, status: 'auth' })).toBe(
       'Needs login | 修复 登录 | KCode',
     );
+    expect(formatTuiTerminalTitle({ ...input, status: 'auth' })).toBe(
+      'Needs login | 修复 登录 | MCode',
+    );
     const long = formatTuiTerminalTitle({ ...input, title: '😀'.repeat(300) })!;
     expect(Array.from(long)).toHaveLength(240);
     expect(long).not.toContain('\ufffd');

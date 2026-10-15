@@ -72,6 +72,7 @@ export function createTuiApp(options: CreateTuiAppOptions): TuiApp {
     renderer,
     tui,
     terminalNotifications,
+    terminalTitle,
     terminalProgramStatus,
     themeController,
     openExternalTarget,
@@ -883,6 +884,7 @@ export function createTuiApp(options: CreateTuiAppOptions): TuiApp {
     if (stopped) return stoppedPromise;
     stateStore.dispatch({ type: 'lifecycle/leaveUi' });
     stopped = true;
+    terminalTitle.dispose();
     terminalProgramStatus.dispose();
     const bashStopped = bashFlow.stop();
     detachInputFlow();
@@ -932,6 +934,7 @@ export function createTuiApp(options: CreateTuiAppOptions): TuiApp {
   async function suspend(): Promise<void> {
     if (!started || stopped || suspended) return;
     suspended = true;
+    terminalTitle.setActive(false);
     terminalProgramStatus.setActive(false);
     renderer.stop();
     await terminal.drainOutput?.();
@@ -941,6 +944,7 @@ export function createTuiApp(options: CreateTuiAppOptions): TuiApp {
     if (!started || stopped || !suspended) return;
     suspended = false;
     renderer.start();
+    terminalTitle.setActive(true);
     terminalProgramStatus.setActive(true);
     updateChrome(controller.snapshot());
     runtimeEventFlow.restart();
@@ -962,6 +966,7 @@ export function createTuiApp(options: CreateTuiAppOptions): TuiApp {
     start() {
       if (started || stopped) return;
       started = true;
+      terminalTitle.setActive(true);
       terminalProgramStatus.setActive(true);
       updateChrome(controller.snapshot());
       surfaceHost.setChatFocus(editor);

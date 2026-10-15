@@ -27,6 +27,7 @@ import {
   type TuiCommand,
 } from '../../commands/catalog.js';
 import { resolveTuiComposerInputIntent } from '../../commands/input-intent.js';
+
 import type { TuiProgramStatus } from '../../platform/terminal-program-status.js';
 
 type PresentationSink<K extends keyof TuiVisiblePresentation> = {
@@ -228,6 +229,7 @@ export class TuiChromeFlow {
         ? 'auth'
         : automationStatus.status;
       this.options.setProgramStatus(programStatus);
+
     }
     const shell = {
       ...presentation.shell,

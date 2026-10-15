@@ -53,6 +53,7 @@ import {
 import { detectProcessTerminalCapabilities } from './platform/terminal-capabilities.js';
 import { createTuiTextClipboardWriter } from './platform/terminal-clipboard.js';
 import { TuiTerminalNotifications } from './platform/terminal-notifications.js';
+import { TuiTerminalTitle } from './platform/terminal-title.js';
 import { TuiTerminalProgramStatus } from './platform/terminal-program-status.js';
 import {
   ProcessTerminal,
@@ -171,6 +172,7 @@ export function createTuiApplicationRenderer(options: CreateTuiAppOptions) {
     },
     { settings: options.notifications },
   );
+  const terminalTitle = new TuiTerminalTitle(terminal, capabilities.isTTY);
   const programStatusCapabilities = options.terminalCapabilities ?? capabilities;
   const terminalProgramStatus = new TuiTerminalProgramStatus(
     terminal,
@@ -189,6 +191,7 @@ export function createTuiApplicationRenderer(options: CreateTuiAppOptions) {
     renderer,
     tui,
     terminalNotifications,
+    terminalTitle,
     terminalProgramStatus,
     themeController,
     openExternalTarget,

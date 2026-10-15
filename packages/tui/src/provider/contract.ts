@@ -4,6 +4,7 @@ export const KCODE_PROVIDER_API_FORMATS = [
   'anthropic-messages',
   'openai-completions',
   'openai-responses',
+  'google-generative-ai',
 ] as const;
 export type KcodeProviderApiFormat = (typeof KCODE_PROVIDER_API_FORMATS)[number];
 
