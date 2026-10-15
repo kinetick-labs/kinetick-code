@@ -39,6 +39,7 @@ const CUSTOM_FORMATS: readonly {
   },
   { value: 'openai-responses', label: 'OpenAI Responses', description: '/responses' },
   { value: 'anthropic-messages', label: 'Anthropic Messages', description: '/v1/messages' },
+  { value: 'google-generative-ai', label: 'Google Generative AI', description: '/models' },
 ];
 
 type OnboardingMode =

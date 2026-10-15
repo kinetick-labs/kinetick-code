@@ -72,6 +72,8 @@ export function createTuiApp(options: CreateTuiAppOptions): TuiApp {
     renderer,
     tui,
     terminalNotifications,
+    terminalTitle,
+    terminalProgramStatus,
     themeController,
     openExternalTarget,
     writeClipboardText,
@@ -300,7 +302,6 @@ export function createTuiApp(options: CreateTuiAppOptions): TuiApp {
       terminalNotifications.notifyOnce(kind, key);
     },
     ...delegationFlow.permissionResolvers(liveRunId),
-    agentStatusLineItems: options.statusLineItems,
     stopTurn: () => {
       void abortLiveTurn();
     },
@@ -828,6 +829,7 @@ export function createTuiApp(options: CreateTuiAppOptions): TuiApp {
     isStarted: () => started,
     isStopped: () => stopped,
     setTerminalTitle: (title) => terminal.setTitle(title),
+    setProgramStatus: (programStatus) => terminalProgramStatus.update(programStatus),
     connection: () => stateStore.snapshot().connection,
     liveRunId,
     runProjection: () => runProjection.snapshot(),
@@ -882,6 +884,8 @@ export function createTuiApp(options: CreateTuiAppOptions): TuiApp {
     if (stopped) return stoppedPromise;
     stateStore.dispatch({ type: 'lifecycle/leaveUi' });
     stopped = true;
+    terminalTitle.dispose();
+    terminalProgramStatus.dispose();
     const bashStopped = bashFlow.stop();
     detachInputFlow();
     composerDraft.abortClipboardRead();
@@ -930,6 +934,8 @@ export function createTuiApp(options: CreateTuiAppOptions): TuiApp {
   async function suspend(): Promise<void> {
     if (!started || stopped || suspended) return;
     suspended = true;
+    terminalTitle.setActive(false);
+    terminalProgramStatus.setActive(false);
     renderer.stop();
     await terminal.drainOutput?.();
     await draftLifecycle?.suspend();
@@ -938,6 +944,9 @@ export function createTuiApp(options: CreateTuiAppOptions): TuiApp {
     if (!started || stopped || !suspended) return;
     suspended = false;
     renderer.start();
+    terminalTitle.setActive(true);
+    terminalProgramStatus.setActive(true);
+    updateChrome(controller.snapshot());
     runtimeEventFlow.restart();
     tui.requestRender(true);
     draftLifecycle?.resume();
@@ -957,6 +966,8 @@ export function createTuiApp(options: CreateTuiAppOptions): TuiApp {
     start() {
       if (started || stopped) return;
       started = true;
+      terminalTitle.setActive(true);
+      terminalProgramStatus.setActive(true);
       updateChrome(controller.snapshot());
       surfaceHost.setChatFocus(editor);
       runtimeEventFlow.start();
