@@ -132,6 +132,16 @@ function createObservability(): TuiObservability {
   };
 }
 
+const INTERACTIVE_CAPABILITIES: TerminalCapabilities = {
+  terminalId: "unknown",
+  platform: "linux",
+  isTTY: true,
+  transport: "local",
+  multiplexer: "none",
+  color: true,
+  colorLevel: 3,
+};
+
 class FakeTerminal implements Terminal {
   columns = 80;
   rows = 18;
@@ -2539,6 +2549,7 @@ describe("createTuiApp", () => {
     const app = createTuiApp({
       runtime,
       terminal,
+      terminalCapabilities: INTERACTIVE_CAPABILITIES,
       version: "0.1.0",
       workspaceDir: "/workspace",
       homeDir: "/home/dev",
@@ -2556,6 +2567,10 @@ describe("createTuiApp", () => {
     expect(conversation).toContain("Hello from the Agent");
     expect(terminal.started).toBe(true);
     expect(terminal.title).toBe("Kinetick Code");
+    const programReports = () =>
+      terminal.writes.filter((value) => value.startsWith("\u001b]7501;"));
+    expect(programReports()).toContain("\u001b]7501;state=working:app=kcode\u001b\\");
+    expect(programReports().at(-1)).toBe("\u001b]7501;state=done:app=kcode\u001b\\");
     expect(runtime.createSession).toHaveBeenCalledWith({
       workspaceDir: "/workspace",
     });
@@ -2571,6 +2586,7 @@ describe("createTuiApp", () => {
 
     await app.stop();
     expect(terminal.stopped).toBe(true);
+    expect(programReports().at(-1)).toBe("\u001b]7501;state=done:app=kcode\u001b\\");
   });
 
   it("syncs the generated Session title to the terminal without duplicate writes", async () => {
@@ -9548,6 +9564,96 @@ describe("createTuiApp", () => {
     );
 
     await app.stop();
+  });
+
+  it("reports permission and question waits to the title and OSC 7501 without build-mode", async () => {
+    const terminal = new FakeTerminal();
+    const runtime = createRuntime();
+    vi.mocked(runtime.listSessions).mockResolvedValue([
+      {
+        sessionId: "session-existing",
+        title: "Existing session",
+        workspaceDir: "/workspace",
+      },
+    ]);
+    vi.mocked(runtime.listPendingPermissions).mockResolvedValue([
+      {
+        requestId: "permission-1",
+        sessionId: "session-existing",
+        agentName: "mavis",
+        toolName: "bash",
+        reason: "Run tests",
+      },
+    ]);
+    // The permission arrives while its Turn is active, as in a real approval prompt.
+    vi.mocked(runtime.getActiveRun).mockImplementation(async (sessionId: string) => ({
+      schemaVersion: 1,
+      sessionId,
+      state: "decision-blocked",
+      turnId: "turn-permission",
+      actions: { steer: false },
+    }));
+    vi.mocked(runtime.getPendingQuestionnaire).mockResolvedValue({
+      id: "question-1",
+      title: "Choose",
+      requester: { sessionId: "session-existing", runId: "turn-question" },
+      steps: [
+        {
+          id: "step-1",
+          question: "Proceed?",
+          selectionMode: "single",
+          options: [
+            { id: "yes", label: "Yes" },
+            { id: "no", label: "No" },
+          ],
+        },
+      ],
+    });
+    // Default configuration: no status line items, so no build-mode line.
+    const app = createTuiApp({
+      runtime,
+      terminal,
+      terminalCapabilities: INTERACTIVE_CAPABILITIES,
+      version: "0.1.0",
+      workspaceDir: "/workspace",
+    });
+    const programReports = () =>
+      terminal.writes.filter((value) => value.startsWith("\u001b]7501;"));
+
+    app.start();
+    await app.ready;
+    await app.submit("/resume session-existing");
+    await vi.waitFor(() => expect(terminal.title).toBe("Existing session"));
+    expect(programReports().at(-1)).toBe(
+      "\u001b]7501;state=blocked:kind=permission:app=kcode\u001b\\",
+    );
+
+    await app.submit("/allow");
+    await vi.waitFor(() => expect(terminal.title).toBe("Existing session"));
+    expect(programReports().at(-1)).toBe(
+      "\u001b]7501;state=blocked:kind=question:app=kcode\u001b\\",
+    );
+    expect(app.tui.render(120).join("\n")).not.toContain("[V]");
+    await app.stop();
+  });
+
+  it("does not report OSC 7501 when tui.programStatus is false", async () => {
+    const terminal = new FakeTerminal();
+    const app = createTuiApp({
+      runtime: createRuntime(),
+      terminal,
+      terminalCapabilities: INTERACTIVE_CAPABILITIES,
+      version: "0.1.0",
+      workspaceDir: "/workspace",
+      programStatus: false,
+    });
+
+    app.start();
+    await app.ready;
+    await app.submit("Say hello");
+    expect(terminal.title).toBe("Kinetick Code");
+    await app.stop();
+    expect(terminal.writes.some((value) => value.includes("\u001b]7501;"))).toBe(false);
   });
 
   it("shows account status and resolves pending permission and questionnaire decisions", async () => {

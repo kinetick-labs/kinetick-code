@@ -28,6 +28,8 @@ import {
 } from '../../commands/catalog.js';
 import { resolveTuiComposerInputIntent } from '../../commands/input-intent.js';
 
+import type { TuiProgramStatus } from '../../platform/terminal-program-status.js';
+
 type PresentationSink<K extends keyof TuiVisiblePresentation> = {
   setState(state: TuiVisiblePresentation[K]): void;
 };
@@ -52,6 +54,7 @@ export class TuiChromeFlow {
       readonly isStarted: () => boolean;
       readonly isStopped: () => boolean;
       readonly setTerminalTitle: (title: string) => void;
+      readonly setProgramStatus: (status: TuiProgramStatus) => void;
       readonly connection: () => Pick<TuiState['connection'], 'phase' | 'generation' | 'lastError'>;
       /** Multi-Session state kernel, including the background parent Turn. */
       readonly liveRunId: (snapshot: TuiChatSnapshot) => string | undefined;
@@ -218,6 +221,16 @@ export class TuiChromeFlow {
       ...(agentCounts ? { agentCounts } : {}),
       ...(backgroundTasks !== undefined ? { backgroundTasks } : {}),
     });
+    if (this.options.isStarted()) {
+      // Program status follows the machine projection. Login is a recoverable
+      // error on the `[V]` line and a distinct auth wait for the terminal.
+      // The fork terminal title stays the session name or "Kinetick Code".
+      const programStatus: TuiProgramStatus = automationStatus.loginRequired
+        ? 'auth'
+        : automationStatus.status;
+      this.options.setProgramStatus(programStatus);
+
+    }
     const shell = {
       ...presentation.shell,
       agentSeq: automationStatus.seq,
